@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="eBtCgkuNtf8avVPvoEsXxp">
+<head data-page-node-id="vPv7p2FWiwgboTC6Y8Aglh">
+<meta charset="UTF-8" data-page-node-id="IktIej5SfXWQnVI7kpmbBJ">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" data-page-node-id="mEs5lI89dy77ZHJxlygFKO">
+<title>魔方复原教练 · Rubik Solver</title>
+<link rel="stylesheet" href="css/style.css" data-page-node-id="YEi04B388gAPLs3qHqvIzC">
+</head>
+<body data-page-node-id="jdTtIQin1UU2pZ0Sk7S9ZU">
+<header class="topbar" data-page-node-id="eAZNrYfJnHczpDGJFV3YPb">
+  <div class="logo" data-page-node-id="5N8lAPjh3iRmCzYch075B2">
+    <span class="logo-cube" data-page-node-id="uMSHMA9qX4OGGIr7YoMqz7"><i data-page-node-id="iYzXytgH1Bx3QAj5tBs9uo"></i><i data-page-node-id="Dumx7WNsTkQvRIeBK4S20m"></i><i data-page-node-id="o0Qa6bZsY3RbRo10v39b6R"></i><i data-page-node-id="wE02WlDycr4S6JvRx5dHhq"></i><i data-page-node-id="86l2nAAUFGKWHkouKQRoJS"></i><i data-page-node-id="xYuTT5dcdRhBFD5hdrsScD"></i><i data-page-node-id="Vwticu4HFFcyY68e746Jsx"></i><i data-page-node-id="rIS0oEjV1ZaLgPZKFF2B67"></i><i data-page-node-id="jjnjFbsB1ZqeEmFvFaJMyR"></i></span>
+    <h1 data-page-node-id="hnkRJRxX5QuCrqIeVdkb0v">魔方复原教练</h1>
+  </div>
+  <div class="alg-switch" data-page-node-id="6ICZBusvCBZGeHgJJvReuv">
+    <label class="alg-opt" data-page-node-id="if7GNNHRWBC4KuQ47Dej82"><input type="radio" name="alg" value="lbl" checked data-page-node-id="QFyUhGiZo1hQTBGxBd0Cpd"><span data-page-node-id="IWmQBTPZFFHAKKduFfQeE2">层先法 LBL</span></label>
+    <label class="alg-opt" data-page-node-id="j9vpOMsS8NyODjoPuuQpPT"><input type="radio" name="alg" value="cfop" data-page-node-id="NS1iZRLX9wuLVAbiEKE7pM"><span data-page-node-id="FoD7dxNFg5gRftGGPFQ0Yc">CFOP</span></label>
+  </div>
+</header>
+
+<main class="layout" data-page-node-id="Qb0sMJyMXkE9C3Xlq7O2zU">
+  <!-- 左：3D 魔方 + 控制 -->
+  <section class="panel panel-cube" data-page-node-id="h0ibTnFKU5wqx2PCeQrLn7">
+    <div id="cubeArea" class="cube-area" data-page-node-id="FYcLQ7VPWGc3aUAxBpxTqC"></div>
+    <div class="ctrl-row" data-page-node-id="kI3CJzLrFdna0tjmgPPqNZ">
+      <button id="btnScramble" class="btn primary" data-page-node-id="o6mvKDRxvRHkyUv883looG">🎲 随机打乱</button>
+      <button id="btnReset" class="btn ghost" data-page-node-id="OYWOBJEThyEyGJYld1DoNi">↺ 复原</button>
+      <button id="btnSolve" class="btn accent" data-page-node-id="E9Tm4UfgqCoZxOXYpZ9JCR">✦ 求解</button>
+    </div>
+    <div id="validBadge" class="badge ok" data-page-node-id="YlGvD1gOPRjxrTEPCAyD1C">状态合法</div>
+    <div id="status" class="status" data-page-node-id="FixKGcOTRd3BdaZXBFSYB3">点击「随机打乱」开始，或直接求解当前状态</div>
+  </section>
+
+  <!-- 右：编辑器 / 步骤 -->
+  <section class="panel panel-side" data-page-node-id="8VYbBvOpVyVo3YtbNlUXsI">
+    <div class="tabs" data-page-node-id="ExUEoXR1yX0CFt8lnsmGUp">
+      <button class="tab active" data-tab="edit" data-page-node-id="WYaou9qi5anxYJuATcGWee">状态编辑</button>
+      <button class="tab" data-tab="steps" data-page-node-id="6Gm1cg8YnLSh8ZWvuf1pJf">复原步骤</button>
+    </div>
+
+    <div id="tab-edit" class="tab-pane active" data-page-node-id="dtP3GHiFnlT1l3Pifw9I9R">
+      <div class="palette" id="palette" data-page-node-id="ajRc6xboFTHceifcLvy7jr">
+        <span class="palette-label" data-page-node-id="28FtlT004BkR8TPJiGZizD">画笔：</span>
+        <button class="swatch" data-color="W" data-page-node-id="fVsnRLnwoUagkYLheEIgnh"></button>
+        <button class="swatch" data-color="Y" data-page-node-id="IiYLE92fZNjbbwvm9ME3bh"></button>
+        <button class="swatch" data-color="R" data-page-node-id="lKzDJoLitwl6mlsKoiLG1B"></button>
+        <button class="swatch" data-color="O" data-page-node-id="eG2AZK9zG0khngZdSiuu7w"></button>
+        <button class="swatch" data-color="G" data-page-node-id="nASEKnquXcuflYT7EM8sCf"></button>
+        <button class="swatch" data-color="B" data-page-node-id="CCpNBjOIWs8pCRK9CVgSG9"></button>
+        <span class="palette-hint" data-page-node-id="vHUVuzBwGBSr8RRV4P1STm">选中画笔后点击格子涂色；未选中时点击循环换色</span>
+      </div>
+      <div id="net" class="net" data-page-node-id="fqHWDDJ1yjOp73cNeyzPyl"></div>
+      <p class="net-note" data-page-node-id="cK0R4xTmG7yzGESyfhAHpn">展开图 · 每面按「从外侧正视」阅读顺序排列 · 中心块不可变（自动标记）</p>
+    </div>
+
+    <div id="tab-steps" class="tab-pane" data-page-node-id="lJmyHgXA9y1fFeRmx7fDi9">
+      <div class="player" data-page-node-id="EQYr6aoyvii9Z18ydpfFSU">
+        <button id="btnToStart" class="btn ghost sm" data-page-node-id="2BIMbTDTGmbiy9UefNOuDC">⏮</button>
+        <button id="btnPrev" class="btn ghost sm" data-page-node-id="9Nl5baAX53OeE6aHq2Ff5g">◀</button>
+        <button id="btnPlay" class="btn primary sm" data-page-node-id="WDwYxNszGAYfaiP7IbcIQf">▶ 播放</button>
+        <button id="btnNext" class="btn ghost sm" data-page-node-id="khGSjZHYgX6yKq2ib4JGBt">▶</button>
+        <label class="speed-ctl" data-page-node-id="X6wNgPBG2E15bRlidPxEgq">速度
+          <input type="range" id="speed" min="90" max="600" step="30" value="300" data-page-node-id="b6AwBAPzTdQt5hdkUYQ25z">
+        </label>
+      </div>
+      <div id="steps" class="steps" data-page-node-id="LVIXyLeo1hNzROfnJCCxTj"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot" data-page-node-id="NxW7tUm7xNg65iABTeVtUr">
+  底层十字 → 底层角块 → 中层棱块 → 顶面 OLL → 顶层 PLL · 支持任意合法状态 · 拖拽 3D 魔方旋转视角
+</footer>
+
+<script src="js/cube-engine.js"></script>
+<script src="js/solver.js"></script>
+<script src="js/view3d.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
