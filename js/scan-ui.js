@@ -10,8 +10,8 @@
   var CS = window.CubeColorScan, E = window.CubeEngine;
   if (!CS || !E || !window.CubeApp) return;
 
-  var FACE_KEYS = CS.FACE_KEYS;                 // ['U','R','F','D','L','B']
-  var FACE_NAME = { U: '顶面', R: '右面', F: '前面', D: '底面', L: '左面', B: '后面' };
+  var FACE_KEYS = CS.FACE_KEYS;                 // 拍摄顺序标签 ['U','R','F','D','L','B']（≠ facelet 面序）
+  var SEQ_NAME = ['第 1 面', '第 2 面', '第 3 面', '第 4 面', '第 5 面', '第 6 面'];
 
   var $ = function (id) { return document.getElementById(id); };
   var stage = $('scanStage'), video = $('scanVideo'), canvas = $('scanCanvas');
@@ -141,7 +141,7 @@
       var snap = snaps[f];
       var d = document.createElement('div');
       d.className = 'scan-face-thumb' + (i === curIdx ? ' current' : '') + (snap ? ' done' : '');
-      d.innerHTML = '<div class="f-name">' + f + '</div>';
+      d.innerHTML = '<div class="f-name">' + SEQ_NAME[i] + '</div>';
       var mini = document.createElement('div');
       mini.className = 'f-mini';
       for (var k = 0; k < 9; k++) {
@@ -163,11 +163,11 @@
   }
 
   function updateGuide() {
-    var f = FACE_KEYS[curIdx];
     var done = FACE_KEYS.filter(function (k) { return snaps[k]; }).length;
+    var f = FACE_KEYS[curIdx];
     guide.textContent = done >= 6
       ? '六面已拍齐！点击「应用 54 格状态到魔方」，或点击下方缩略图重拍'
-      : '第 ' + (curIdx + 1) + '/6 面：将魔方「' + FACE_NAME[f] + '（' + f + '）」正对取景框后拍摄';
+      : '拍摄' + SEQ_NAME[curIdx] + '（' + done + '/6 已拍）：将魔方一个未拍摄的面正对取景框（面归属由中心块颜色自动判断）';
     renderThumbs();
   }
 
@@ -179,16 +179,14 @@
       if (!snaps[f]) { note.textContent = '还有未拍摄的面'; return; }
       grids[f] = snaps[f].grid;
     }
-    var result = CS.classifyCube(grids);
-    var flat = [];
-    FACE_KEYS.forEach(function (f) { flat = flat.concat(result[f]); });
-    var v = E.validate(flat);
-    if (v.ok) {
-      window.CubeApp.applyScannedState(flat);
-      note.textContent = '识别成功：状态合法，已应用到魔方';
+    var cls = CS.classifyCube(grids);          // {faces, margins}
+    var asm = CS.assembleCube(cls.faces, cls.margins); // 面归属 + 旋转搜索
+    window.CubeApp.applyScannedState(asm.state);
+    if (asm.ok) {
+      note.textContent = '识别成功：已自动判断面归属与朝向，状态合法可直接求解';
     } else {
-      window.CubeApp.applyScannedState(flat);
-      note.textContent = '已应用，但该状态不可复原（' + v.reason + '）——请到「状态编辑」中核对修正，通常是识别错误的格子';
+      window.CubeApp.markSuspects(asm.suspects || []);
+      note.textContent = '已应用，但存在识别问题（' + asm.reason + '）——展开图中黄框闪烁的是最可疑的格子，请对照真实魔方修正后再求解';
     }
   }
 

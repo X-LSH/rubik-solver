@@ -70,9 +70,9 @@ function classifyState(state, opts) {
   CS.FACE_KEYS.forEach(function (f) { grids[f] = CS.sampleGrid(images[f], 0, 0, 30, 30); });
   return CS.classifyCube(grids);
 }
-function toFlat(result) {
+function toFlat(cls) {
   var out = [];
-  CS.FACE_KEYS.forEach(function (f) { out = out.concat(result[f]); });
+  CS.FACE_KEYS.forEach(function (f) { out = out.concat(cls.faces[f]); });
   return out;
 }
 function matchCount(a, b) {
@@ -160,7 +160,69 @@ function randomState(seed) {
   t('3.11 分类组装态 validate 通过', vOk, E.validate(flat).reason);
 
   // 输出结构
-  t('3.12 输出结构：六面各 9 格', CS.FACE_KEYS.every(function (f) { return rr[f].length === 9; }));
+  t('3.12 输出结构：六面各 9 格', CS.FACE_KEYS.every(function (f) { return rr.faces[f].length === 9; }));
+  t('3.13 margins 结构：54 项且中心为 Infinity', CS.FACE_KEYS.every(function (f) {
+    return rr.margins[f].length === 9 && rr.margins[f][4] === Infinity;
+  }));
+})();
+
+/* ---------- 4. assembleCube：面归属 + 面内旋转搜索 ---------- */
+(function () {
+  var ROT_IDX = [6, 3, 0, 7, 4, 1, 8, 5, 2];
+  function rotLetters(g, times) {
+    var out = g.slice();
+    for (var t = 0; t < times; t++) {
+      var n = new Array(9);
+      for (var i = 0; i < 9; i++) n[i] = out[ROT_IDX[i]];
+      out = n;
+    }
+    return out;
+  }
+  function letterFaces(st) {
+    var faces = {};
+    CS.FACE_KEYS.forEach(function (f, fi) { faces[f] = st.slice(fi * 9, fi * 9 + 9); });
+    return faces;
+  }
+
+  // A. 复原态各面随机旋转 → 还原 solvedState
+  var rndA = lcg(77);
+  var solved = E.solvedState();
+  var facesA = letterFaces(solved);
+  CS.FACE_KEYS.forEach(function (f) { facesA[f] = rotLetters(facesA[f], (rndA() * 4) | 0); });
+  var asmA = CS.assembleCube(facesA);
+  t('4.1 复原态随机旋转 → 自动搜索还原', asmA.ok && JSON.stringify(asmA.state) === JSON.stringify(solved), JSON.stringify(asmA.rotations));
+
+  // B. 随机合法态 ×3 + 随机旋转 → 还原原状态
+  [21, 22, 23].forEach(function (seed) {
+    var st = randomState(seed);
+    var rnd = lcg(seed * 10 + 1);
+    var faces = letterFaces(st);
+    CS.FACE_KEYS.forEach(function (f) { faces[f] = rotLetters(faces[f], (rnd() * 4) | 0); });
+    var asm = CS.assembleCube(faces);
+    t('4.2 随机态 seed=' + seed + ' 旋转搜索还原', asm.ok && JSON.stringify(asm.state) === JSON.stringify(st),
+      asm.ok ? 'rot=' + asm.rotations.join(',') : asm.reason);
+  });
+
+  // C. 中心重复检测
+  var facesC = letterFaces(randomState(24));
+  facesC.R = facesC.R.slice();
+  facesC.R[4] = facesC.U[4]; // 两面中心同色
+  var asmC = CS.assembleCube(facesC);
+  t('4.3 中心重复 → 拒绝并提示', !asmC.ok && asmC.reason.indexOf('重复') >= 0, asmC.reason);
+
+  // D. 非中心篡改一格 → 无合法组合 + 可疑格定位（margin 最小者被标记）
+  var stD = randomState(25);
+  var facesD = letterFaces(stD);
+  facesD.U = facesD.U.slice();
+  var wrongLetter = facesD.U[0] === 'W' ? 'Y' : 'W';
+  facesD.U[0] = wrongLetter;
+  var marginsD = {};
+  CS.FACE_KEYS.forEach(function (f) { marginsD[f] = new Array(9).fill(1); marginsD[f][4] = Infinity; });
+  marginsD.U[0] = 0; // 篡改格区分度最低
+  var asmD = CS.assembleCube(facesD, marginsD);
+  t('4.4 篡改一格 → 无合法组合', !asmD.ok && asmD.reason.indexOf('识别错误') >= 0, asmD.reason || 'ok');
+  t('4.5 可疑格定位：margin 最小的篡改格被标记（facelet 索引 0）', asmD.suspects && asmD.suspects.indexOf(0) === 0, JSON.stringify(asmD.suspects));
+  t('4.6 回退状态仍被返回（54 项）', asmD.state && asmD.state.length === 54);
 })();
 
 console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');

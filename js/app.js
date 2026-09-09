@@ -336,15 +336,23 @@
   // 供拍照录入模块（scan-ui.js）调用
   window.CubeApp = {
     showTab: showTab,
+    updateStatus: updateStatus,
+    markSuspects: function (idxArr) {
+      $$('.net-cell.suspect').forEach(function (c) { c.classList.remove('suspect'); });
+      (idxArr || []).forEach(function (i) {
+        var el = document.querySelector('#net .net-cell[data-idx="' + i + '"]');
+        if (el) el.classList.add('suspect');
+      });
+    },
     applyScannedState: function (flat) {
       stopPlay();
       solution = null; flatMoves = [];
       state = flat.slice();
+      window.CubeApp.markSuspects([]);
       syncState();
       renderSteps();
       showTab('edit');
-    },
-    updateStatus: updateStatus
+    }
   };
 
   document.addEventListener('DOMContentLoaded', init);

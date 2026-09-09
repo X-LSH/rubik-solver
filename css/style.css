@@ -172,6 +172,11 @@ body {
 .net-cell { border-radius: 5px; cursor: pointer; transition: filter .1s; min-height: 22px; }
 .net-cell:hover { filter: brightness(1.25); }
 .net-cell.center { box-shadow: inset 0 0 0 2px rgba(255,255,255,.55); }
+.net-cell.suspect {
+  box-shadow: inset 0 0 0 2px #ffd76a, 0 0 8px rgba(255,215,106,.5);
+  animation: suspectPulse 1.1s ease-in-out infinite;
+}
+@keyframes suspectPulse { 50% { filter: brightness(1.4); } }
 .net-note { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 10px; }
 
 /* ---------- 播放器 / 步骤 ---------- */

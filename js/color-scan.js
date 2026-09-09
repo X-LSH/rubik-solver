@@ -128,21 +128,26 @@
     var classLab = {};
     FACE_KEYS.forEach(function (f, i) { classLab[bestPerm[i]] = centerLab[i]; });
 
-    // 3. 其余 48 格：对 6 类 ΔE → 「每色恰 9」平衡贪心
-    var result = {};
+    // 3. 其余 48 格：对 6 类 ΔE → 「每色恰 9」平衡贪心，并记录每格区分度 margin
+    var result = {}, margins = {};
     var counts = {}, assigned = {};
     FACE_KEYS.forEach(function (f, fi) {
       result[f] = new Array(9);
+      margins[f] = new Array(9);
       result[f][4] = bestPerm[fi]; // 中心格直接定类
+      margins[f][4] = Infinity;    // 中心块不做可疑评估
       counts[bestPerm[fi]] = (counts[bestPerm[fi]] || 0) + 1;
     });
+    var cellDists = {}; // "f+i" → [6] 对各类 ΔE²
     var cands = [];
     FACE_KEYS.forEach(function (f) {
       for (var i = 0; i < 9; i++) {
         if (i === 4) continue;
         var lab = labWithGain(faces[f][i], gains);
+        var dists = STD_LETTERS.map(function (L) { return dE2(lab, classLab[L]); });
+        cellDists[f + i] = dists;
         for (var j = 0; j < 6; j++) {
-          cands.push({ f: f, i: i, letter: STD_LETTERS[j], d: dE2(lab, classLab[STD_LETTERS[j]]) });
+          cands.push({ f: f, i: i, letter: STD_LETTERS[j], d: dists[j] });
         }
       }
     });
@@ -155,7 +160,105 @@
       result[cd.f][cd.i] = cd.letter;
       counts[cd.letter]++;
     }
-    return result;
+    FACE_KEYS.forEach(function (f) {
+      for (var i = 0; i < 9; i++) {
+        if (i === 4) continue;
+        var ds = cellDists[f + i].slice().sort(function (a, b) { return a - b; });
+        margins[f][i] = ds[1] - ds[0]; // 区分度：越小越模糊越可疑
+      }
+    });
+    return { faces: result, margins: margins };
+  }
+
+  /* ---------- 组装：面归属 + 面内旋转搜索 ----------
+   * faces: { U:[9×字母], … }（键=拍摄顺序标签，行优先）；margins 同构（可省略）
+   * 规则：面归属由该面中心块颜色决定（标准配色）；每张照片存在未知面内旋转，
+   *       枚举 4^6 组合，取通过 validate 的解（计数预筛加速）。
+   * 返回：{ ok:true, state:[54], rotations:[6] } 或
+   *       { ok:false, reason, state:[54]（无旋转最佳猜测）, suspects:[facelet 索引] }
+   */
+  var ROT_IDX = [6, 3, 0, 7, 4, 1, 8, 5, 2]; // 顺时针 90° 的行优先索引变换
+  function rotGrid(g, times) {
+    var out = g.slice();
+    for (var t = 0; t < times; t++) {
+      var n = new Array(9);
+      for (var i = 0; i < 9; i++) n[i] = out[ROT_IDX[i]];
+      out = n;
+    }
+    return out;
+  }
+  // 颜色字母 → 标准面字母（由引擎 solvedState 中心推导，不硬编码配色）
+  var LETTER_FACE = (function () {
+    var m = {}, solved = E.solvedState();
+    for (var fi = 0; fi < 6; fi++) m[solved[fi * 9 + 4]] = E.FACES[fi];
+    return m;
+  })();
+
+  function colorCounts(flat) {
+    var cnt = {};
+    for (var i = 0; i < 54; i++) cnt[flat[i]] = (cnt[flat[i]] || 0) + 1;
+    return cnt;
+  }
+
+  function assembleCube(faces, margins) {
+    // 1. 面归属：中心色 → 标准面
+    var owner = {}; // 标准面 → 拍摄面键
+    for (var i = 0; i < 6; i++) {
+      var f = FACE_KEYS[i], face = LETTER_FACE[faces[f][4]];
+      if (!face) return { ok: false, reason: '中心块颜色无法识别（第 ' + (i + 1) + ' 面）' };
+      if (owner[face]) return { ok: false, reason: '中心块识别重复（两面都识别为 ' + face + ' 面颜色）——请重拍对应面' };
+      owner[face] = f;
+    }
+    for (var fi = 0; fi < 6; fi++) {
+      if (!owner[E.FACES[fi]]) return { ok: false, reason: '缺少 ' + E.FACES[fi] + ' 面颜色的中心块' };
+    }
+
+    // 2. 枚举 4^6 面内旋转（计数预筛 → validate）
+    for (var code = 0; code < 4096; code++) {
+      var flat = new Array(54);
+      for (var fb = 0; fb < 6; fb++) {
+        var faceB = E.FACES[fb], shot = owner[faceB];
+        var rot = (code >> (fb * 2)) & 3;
+        var g = rotGrid(faces[shot], rot);
+        var base = fb * 9;
+        for (var k2 = 0; k2 < 9; k2++) flat[base + k2] = g[k2];
+      }
+      var cnt = colorCounts(flat), passCnt = true;
+      for (var L in cnt) if (cnt[L] !== 9) { passCnt = false; break; }
+      if (passCnt && E.validate(flat).ok) {
+        var rotations = [];
+        for (var rb = 0; rb < 6; rb++) rotations.push((code >> (rb * 2)) & 3);
+        return { ok: true, state: flat, rotations: rotations };
+      }
+    }
+
+    // 3. 无合法组合：回退无旋转组装 + 可疑格定位
+    var flat0 = new Array(54);
+    var shotToFace = {}; // 拍摄面键 → facelet 面字母
+    for (var fb2 = 0; fb2 < 6; fb2++) {
+      shotToFace[owner[E.FACES[fb2]]] = E.FACES[fb2];
+      var base2 = fb2 * 9, g0 = faces[owner[E.FACES[fb2]]];
+      for (var k3 = 0; k3 < 9; k3++) flat0[base2 + k3] = g0[k3];
+    }
+    return { ok: false, reason: '存在识别错误，未找到几何一致的组合', state: flat0, suspects: locateSuspects(flat0, margins, shotToFace) };
+  }
+
+  // 可疑格定位（facelet 索引）：计数错误 → 多出色类中 margin 最小者；结构非法 → 全局 margin 最小者
+  function locateSuspects(flat, margins, shotToFace) {
+    if (!margins) return [];
+    var all = [];
+    FACE_KEYS.forEach(function (f) {
+      var faceF = shotToFace[f], base = E.FACES.indexOf(faceF) * 9;
+      for (var i = 0; i < 9; i++) {
+        if (margins[f][i] === Infinity) continue;
+        all.push({ idx: base + i, m: margins[f][i], letter: flat[base + i] });
+      }
+    });
+    var cnt = colorCounts(flat);
+    var extras = STD_LETTERS.filter(function (L) { return (cnt[L] || 0) > 9; });
+    var pool = extras.length ? all.filter(function (c) { return extras.indexOf(c.letter) >= 0; }) : all;
+    pool.sort(function (a, b) { return a.m - b.m; });
+    return pool.slice(0, 3).map(function (c) { return c.idx; });
   }
 
   /* ---------- 单点参考分类（实时预览用，非最终结果） ---------- */
@@ -175,6 +278,7 @@
     sampleGrid: sampleGrid,
     whiteBalanceGains: whiteBalanceGains,
     classifyCube: classifyCube,
+    assembleCube: assembleCube,
     nearestStdLetter: nearestStdLetter,
     STD_LETTERS: STD_LETTERS,
     FACE_KEYS: FACE_KEYS

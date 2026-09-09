@@ -115,6 +115,17 @@ function t(name, ok, extra) {
   await page2.click('#btnShot');
   t('S13 上传后可拍摄本面', await page2.$eval('.scan-face-thumb', el => el.classList.contains('done')));
 
+  // 六面同一张图（中央全白）→ 中心匹配为双射必产生非法组合 → 旋转搜索失败 + 可疑格引导
+  for (let i = 0; i < 5; i++) await page2.click('#btnShot');
+  await page2.click('#btnScanApply');
+  await page2.waitForTimeout(300);
+  const asmFail = await page2.evaluate(() => ({
+    note: document.getElementById('scanNote').textContent,
+    suspects: document.querySelectorAll('#net .net-cell.suspect').length
+  }));
+  t('S14 无效输入 → 识别错误提示 + 回退应用', asmFail.note.includes('识别错误'), asmFail.note);
+  t('S15 可疑格黄框标记渲染', asmFail.suspects > 0, 'suspects=' + asmFail.suspects);
+
   t('无页面 JS 错误', errors.length === 0, errors.join(' | '));
   await browser.close();
   console.log('\n结果: ' + pass + ' 通过, ' + fail + ' 失败');
