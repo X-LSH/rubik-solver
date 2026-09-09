@@ -42,6 +42,40 @@
     B: { ax: [0, 0, 1], deg: -90 }
   };
 
+  /* ---------- 轨道旋转（trackball）：3x3 矩阵累积，无万向节锁，可 360° 全向 ---------- */
+  function matMul(A, B) {
+    var C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (var i = 0; i < 3; i++)
+      for (var j = 0; j < 3; j++)
+        C[i][j] = A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j];
+    return C;
+  }
+  function axisRot(axis, deg) {
+    var a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    if (axis === 'x') return [[1, 0, 0], [0, c, -s], [0, s, c]];
+    return [[c, 0, s], [0, 1, 0], [-s, 0, c]];
+  }
+  function cross(a, b) {
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  }
+  // Gram-Schmidt 正交化：长拖拽数值漂移累积，定期把矩阵拉回正交
+  function matOrthonormalize(R) {
+    var n = function (v) { var l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+    var x = n(R[0]);
+    var y = R[1];
+    var d = x[0] * y[0] + x[1] * y[1] + x[2] * y[2];
+    y = n([y[0] - d * x[0], y[1] - d * x[1], y[2] - d * x[2]]);
+    return [x, y, cross(x, y)];
+  }
+  function matToCss(R) {
+    // matrix3d 按列主序展开 3x3 线性部分
+    return 'matrix3d(' +
+      R[0][0] + ',' + R[1][0] + ',' + R[2][0] + ',0,' +
+      R[0][1] + ',' + R[1][1] + ',' + R[2][1] + ',0,' +
+      R[0][2] + ',' + R[1][2] + ',' + R[2][2] + ',0,' +
+      '0,0,0,1)';
+  }
+
   function CubeView(container, opts) {
     opts = opts || {};
     this.size = opts.size || 66;         // cubie 尺寸 px
@@ -58,8 +92,10 @@
     vp.appendChild(this.scene);
     container.appendChild(vp);
 
-    this.rotX = opts.rotX != null ? opts.rotX : -28;
-    this.rotY = opts.rotY != null ? opts.rotY : -34;
+    // 初始姿态 = rotateX(rx) rotateY(ry) 的矩阵形式（与旧版默认 -28/-34 一致）
+    var initRx = opts.rotX != null ? opts.rotX : -28;
+    var initRy = opts.rotY != null ? opts.rotY : -34;
+    this.orbit = matMul(axisRot('x', initRx), axisRot('y', initRy));
     this._applyOrbit();
 
     this.cubies = [];
@@ -73,10 +109,13 @@
     function down(x, y) { dragging = true; lx = x; ly = y; }
     function move(x, y) {
       if (!dragging) return;
-      self.rotY += (x - lx) * 0.4;
-      self.rotX -= (y - ly) * 0.4;
-      self.rotX = Math.max(-90, Math.min(90, self.rotX));
+      var dtx = (x - lx) * 0.4, dty = (y - ly) * 0.4;
       lx = x; ly = y;
+      if (!dtx && !dty) return;
+      // 屏幕轴左乘：水平拖绕屏幕竖直轴、垂直拖绕屏幕水平轴；方向与旧版一致
+      self.orbit = matOrthonormalize(
+        matMul(axisRot('x', -dty), matMul(axisRot('y', dtx), self.orbit))
+      );
       self._applyOrbit();
     }
     function up() { dragging = false; }
@@ -93,7 +132,7 @@
   }
 
   CubeView.prototype._applyOrbit = function () {
-    this.scene.style.transform = 'rotateX(' + this.rotX + 'deg) rotateY(' + this.rotY + 'deg)';
+    this.scene.style.transform = matToCss(this.orbit);
   };
 
   CubeView.prototype._build = function () {
