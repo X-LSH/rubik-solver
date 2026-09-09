@@ -29,6 +29,16 @@ function t(name, ok, extra) {
   // 进入拍照 tab
   await page.click('.tab[data-tab="scan"]');
   t('S1 拍照 tab 存在且可切换', await page.$eval('#tab-scan', el => el.classList.contains('active')));
+  await page.waitForTimeout(100);
+  const layoutMode = await page.evaluate(() => ({
+    cubeHidden: getComputedStyle(document.querySelector('.panel-cube')).display === 'none',
+    scanMode: document.body.classList.contains('scan-mode')
+  }));
+  t('S16 拍照模式下 3D 面板隐藏（布局让位取景器）', layoutMode.cubeHidden && layoutMode.scanMode, JSON.stringify(layoutMode));
+  await page.click('.tab[data-tab="edit"]');
+  await page.waitForTimeout(100);
+  t('S17 切回编辑 tab 后 3D 面板恢复', await page.$eval('.panel-cube', el => getComputedStyle(el).display !== 'none'));
+  await page.click('.tab[data-tab="scan"]');
 
   // 启动摄像头（fake device）
   await page.click('#btnScanStart');
@@ -121,10 +131,24 @@ function t(name, ok, extra) {
   await page2.waitForTimeout(300);
   const asmFail = await page2.evaluate(() => ({
     note: document.getElementById('scanNote').textContent,
+    guide: document.getElementById('scanGuide').textContent,
     suspects: document.querySelectorAll('#net .net-cell.suspect').length
   }));
-  t('S14 无效输入 → 识别错误提示 + 回退应用', asmFail.note.includes('识别错误'), asmFail.note);
+  t('S14 无效输入 → 识别错误提示 + 回退应用', asmFail.note.includes('识别错误') || asmFail.note.includes('可尝试'), asmFail.note);
   t('S15 可疑格黄框标记渲染', asmFail.suspects > 0, 'suspects=' + asmFail.suspects);
+
+  // 单面旋转校正：结果横幅为警示态 + ⟳ 按钮存在并可旋转
+  const rotUi = await page2.evaluate(() => ({
+    guideBad: document.getElementById('scanGuide').className.includes('bad'),
+    rotCount: document.querySelectorAll('.scan-face-thumb .f-rot').length
+  }));
+  t('S18 应用失败时引导横幅为警示态', rotUi.guideBad);
+  t('S19 已拍面显示旋转校正按钮', rotUi.rotCount === 6, 'count=' + rotUi.rotCount);
+  await page2.click('.tab[data-tab="scan"]'); // 应用失败也会切到编辑 tab，先回到拍照页
+  await page2.waitForTimeout(200);
+  await page2.click('.scan-face-thumb .f-rot');
+  const rotNote = await page2.evaluate(() => document.getElementById('scanNote').textContent);
+  t('S20 点击 ⟳ 旋转单面并提示重新应用', rotNote.includes('旋转 90°'), rotNote);
 
   t('无页面 JS 错误', errors.length === 0, errors.join(' | '));
   await browser.close();

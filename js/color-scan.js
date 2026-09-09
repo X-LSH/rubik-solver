@@ -135,17 +135,16 @@
       result[f] = new Array(9);
       margins[f] = new Array(9);
       result[f][4] = bestPerm[fi]; // 中心格直接定类
-      margins[f][4] = Infinity;    // 中心块不做可疑评估
       counts[bestPerm[fi]] = (counts[bestPerm[fi]] || 0) + 1;
     });
-    var cellDists = {}; // "f+i" → [6] 对各类 ΔE²
+    var cellDists = {}; // "f+i" → [6] 对各类 ΔE²（含中心格）
     var cands = [];
     FACE_KEYS.forEach(function (f) {
       for (var i = 0; i < 9; i++) {
-        if (i === 4) continue;
         var lab = labWithGain(faces[f][i], gains);
         var dists = STD_LETTERS.map(function (L) { return dE2(lab, classLab[L]); });
         cellDists[f + i] = dists;
+        if (i === 4) continue;
         for (var j = 0; j < 6; j++) {
           cands.push({ f: f, i: i, letter: STD_LETTERS[j], d: dists[j] });
         }
@@ -161,8 +160,8 @@
       counts[cd.letter]++;
     }
     FACE_KEYS.forEach(function (f) {
+      // 全部 9 格（含中心）均计算 margin：中心格 margin 小 = 中心色误判 → 面归属错误
       for (var i = 0; i < 9; i++) {
-        if (i === 4) continue;
         var ds = cellDists[f + i].slice().sort(function (a, b) { return a - b; });
         margins[f][i] = ds[1] - ds[0]; // 区分度：越小越模糊越可疑
       }

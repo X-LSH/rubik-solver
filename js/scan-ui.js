@@ -135,6 +135,13 @@
     note.textContent = '已拍摄 ' + face + ' 面（' + done + '/6）';
   }
 
+  var ROT_IDX = [6, 3, 0, 7, 4, 1, 8, 5, 2]; // 顺时针 90°（与 color-scan 同约定）
+  function rotGrid90(g) {
+    var n = new Array(9);
+    for (var i = 0; i < 9; i++) n[i] = g[ROT_IDX[i]];
+    return n;
+  }
+
   function renderThumbs() {
     facesBox.innerHTML = '';
     FACE_KEYS.forEach(function (f, i) {
@@ -153,6 +160,20 @@
         mini.appendChild(dot);
       }
       d.appendChild(mini);
+      if (snap) {
+        // 单面旋转校正：修正照片面内朝向 / 局部识别可疑时手动微调
+        var rotBtn = document.createElement('button');
+        rotBtn.className = 'f-rot';
+        rotBtn.textContent = '⟳';
+        rotBtn.title = '旋转此面 90°';
+        rotBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          snaps[f].grid = rotGrid90(snaps[f].grid);
+          renderThumbs();
+          note.textContent = '已将' + SEQ_NAME[i] + '顺时针旋转 90°，重新点「应用 54 格状态到魔方」生效';
+        });
+        d.appendChild(rotBtn);
+      }
       d.addEventListener('click', function () {
         curIdx = FACE_KEYS.indexOf(f);
         updateGuide();
@@ -163,8 +184,8 @@
   }
 
   function updateGuide() {
+    guide.className = 'scan-guide';
     var done = FACE_KEYS.filter(function (k) { return snaps[k]; }).length;
-    var f = FACE_KEYS[curIdx];
     guide.textContent = done >= 6
       ? '六面已拍齐！点击「应用 54 格状态到魔方」，或点击下方缩略图重拍'
       : '拍摄' + SEQ_NAME[curIdx] + '（' + done + '/6 已拍）：将魔方一个未拍摄的面正对取景框（面归属由中心块颜色自动判断）';
@@ -183,10 +204,15 @@
     var asm = CS.assembleCube(cls.faces, cls.margins); // 面归属 + 旋转搜索
     window.CubeApp.applyScannedState(asm.state);
     if (asm.ok) {
-      note.textContent = '识别成功：已自动判断面归属与朝向，状态合法可直接求解';
+      guide.className = 'scan-guide ok';
+      guide.textContent = '✓ 识别成功：已自动判断面归属与朝向，状态合法，切到 3D 魔方即可求解';
+      note.textContent = '识别成功';
     } else {
+      guide.className = 'scan-guide bad';
+      guide.textContent = '⚠ 识别结果暂不可直接求解——展开图中黄框闪烁的是最可疑的格子';
+      note.textContent = '可尝试：① 点击缩略图右上角 ⟳ 旋转可疑面（每拍一面可能转了 90°/180°）后重新应用；'
+        + '② 中心块颜色认错会导致面归属错误，黄框落在中心时请重拍该面；③ 直接在「状态编辑」展开图手动修正';
       window.CubeApp.markSuspects(asm.suspects || []);
-      note.textContent = '已应用，但存在识别问题（' + asm.reason + '）——展开图中黄框闪烁的是最可疑的格子，请对照真实魔方修正后再求解';
     }
   }
 

@@ -218,11 +218,17 @@ body {
 }
 
 /* ---------- 拍照录入 ---------- */
+/* ---------- 拍照模式布局：隐藏 3D 面板，取景器获得全部纵向空间 ---------- */
+body.scan-mode .layout { grid-template-columns: 1fr; }
+body.scan-mode .panel-cube { display: none; }
+
 .scan-guide {
   font-size: 13px; color: var(--accent); text-align: center;
   padding: 8px 10px; border: 1px dashed rgba(79,140,255,.4); border-radius: 9px;
   margin-bottom: 10px;
 }
+.scan-guide.ok { color: var(--accent2); border-color: rgba(34,197,139,.5); background: rgba(34,197,139,.08); }
+.scan-guide.bad { color: var(--danger); border-color: rgba(255,93,93,.5); background: rgba(255,93,93,.08); }
 .scan-stage {
   position: relative; width: 100%; max-width: 420px; margin: 0 auto;
   aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden;
@@ -260,10 +266,19 @@ body {
   width: 100%; max-width: 420px; margin: 0 auto 10px;
 }
 .scan-face-thumb {
+  position: relative;
   border: 1px solid var(--border); border-radius: 8px; padding: 4px;
   cursor: pointer; text-align: center; background: rgba(255,255,255,.02);
   transition: border-color .15s;
 }
+.scan-face-thumb .f-rot {
+  position: absolute; top: -7px; right: -7px;
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--bg2); color: var(--accent);
+  font-size: 12px; line-height: 1; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.scan-face-thumb .f-rot:active { transform: scale(.9); }
 .scan-face-thumb.current { border-color: var(--accent); }
 .scan-face-thumb.done { border-color: rgba(34,197,139,.6); }
 .scan-face-thumb .f-name { font-size: 11px; color: var(--text-dim); margin-bottom: 3px; }

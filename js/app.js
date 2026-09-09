@@ -182,6 +182,8 @@
   function showTab(name) {
     $$('.tab').forEach(function (x) { x.classList.toggle('active', x.dataset.tab === name); });
     $$('.tab-pane').forEach(function (x) { x.classList.toggle('active', x.id === 'tab-' + name); });
+    // 拍照模式下隐藏 3D 面板，把屏幕空间让给取景器（移动端尤其重要）
+    document.body.classList.toggle('scan-mode', name === 'scan');
   }
 
   /* ---------------- 求解 ---------------- */

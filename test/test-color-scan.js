@@ -161,8 +161,8 @@ function randomState(seed) {
 
   // 输出结构
   t('3.12 输出结构：六面各 9 格', CS.FACE_KEYS.every(function (f) { return rr.faces[f].length === 9; }));
-  t('3.13 margins 结构：54 项且中心为 Infinity', CS.FACE_KEYS.every(function (f) {
-    return rr.margins[f].length === 9 && rr.margins[f][4] === Infinity;
+  t('3.13 margins 结构：54 项且中心格为有限数（参与可疑评估）', CS.FACE_KEYS.every(function (f) {
+    return rr.margins[f].length === 9 && isFinite(rr.margins[f][4]);
   }));
 })();
 
