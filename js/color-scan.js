@@ -158,6 +158,16 @@
     return result;
   }
 
+  /* ---------- 单点参考分类（实时预览用，非最终结果） ---------- */
+  function nearestStdLetter(r, g, b) {
+    var lab = rgbToLab(r, g, b), best = null, bestD = Infinity;
+    STD_LETTERS.forEach(function (L) {
+      var d = dE2(lab, STD_LAB[L]);
+      if (d < bestD) { bestD = d; best = L; }
+    });
+    return best;
+  }
+
   /* ---------- 导出 ---------- */
   var ColorScan = {
     rgbToLab: rgbToLab,
@@ -165,6 +175,7 @@
     sampleGrid: sampleGrid,
     whiteBalanceGains: whiteBalanceGains,
     classifyCube: classifyCube,
+    nearestStdLetter: nearestStdLetter,
     STD_LETTERS: STD_LETTERS,
     FACE_KEYS: FACE_KEYS
   };

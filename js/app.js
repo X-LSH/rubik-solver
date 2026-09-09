@@ -175,13 +175,13 @@
     });
     // Tab 切换
     $$('.tab').forEach(function (t) {
-      t.addEventListener('click', function () {
-        $$('.tab').forEach(function (x) { x.classList.remove('active'); });
-        $$('.tab-pane').forEach(function (x) { x.classList.remove('active'); });
-        t.classList.add('active');
-        $('#tab-' + t.dataset.tab).classList.add('active');
-      });
+      t.addEventListener('click', function () { showTab(t.dataset.tab); });
     });
+  }
+
+  function showTab(name) {
+    $$('.tab').forEach(function (x) { x.classList.toggle('active', x.dataset.tab === name); });
+    $$('.tab-pane').forEach(function (x) { x.classList.toggle('active', x.id === 'tab-' + name); });
   }
 
   /* ---------------- 求解 ---------------- */
@@ -208,10 +208,7 @@
         flatIdx = 0; playIndex = 0;
         renderSteps();
         // 自动切到步骤 tab
-        $$('.tab').forEach(function (x) { x.classList.remove('active'); });
-        $$('.tab-pane').forEach(function (x) { x.classList.remove('active'); });
-        document.querySelector('.tab[data-tab="steps"]').classList.add('active');
-        $('#tab-steps').classList.add('active');
+        showTab('steps');
         updateStatus((mode === 'lbl' ? '层先法' : 'CFOP') + '：共 ' + r.totalMoves + ' 步 / ' + r.steps.length + ' 个阶段（' + dt + 'ms）— 点击播放演示');
       } catch (e) {
         updateStatus('求解失败：' + e.message);
@@ -336,5 +333,19 @@
   }
 
   /* ---------------- 启动 ---------------- */
+  // 供拍照录入模块（scan-ui.js）调用
+  window.CubeApp = {
+    showTab: showTab,
+    applyScannedState: function (flat) {
+      stopPlay();
+      solution = null; flatMoves = [];
+      state = flat.slice();
+      syncState();
+      renderSteps();
+      showTab('edit');
+    },
+    updateStatus: updateStatus
+  };
+
   document.addEventListener('DOMContentLoaded', init);
 })();
