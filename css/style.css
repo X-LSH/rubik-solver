@@ -290,6 +290,46 @@ body.scan-mode .panel-cube { display: none; }
 #btnScanApply { width: 100%; max-width: 420px; display: block; margin: 0 auto; }
 .scan-note { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 8px; }
 
+/* ---------- 编辑页内嵌校验条 / 记号说明 / 公式符号 ---------- */
+.edit-badge { display: block; margin: 0 0 10px; text-align: center; }
+
+.notation-help {
+  border: 1px solid var(--border); border-radius: 9px;
+  margin-bottom: 10px; font-size: 12px; color: var(--text-dim);
+  overflow: hidden;
+}
+.notation-help summary {
+  padding: 8px 10px; cursor: pointer; color: var(--text); user-select: none;
+}
+.notation-body { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 2px 10px 10px; }
+.notation-body .wide { width: 100%; }
+.notation-body b { color: #ffd76a; }
+.ldot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+  margin-right: 4px; vertical-align: -1px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+}
+
+.step-formula .mv {
+  display: inline-block; margin: 2px 3px 2px 0;
+  padding: 3px 7px; border-radius: 6px; border: none; cursor: pointer;
+  font-family: "Consolas", "JetBrains Mono", monospace;
+  font-size: 13px; font-weight: 700; line-height: 1.4;
+  color: #10151c; transition: transform .12s, box-shadow .12s;
+}
+.step-formula .mv:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.4); }
+.mv-U { background: #F2F5F7; }
+.mv-D { background: #FFD500; }
+.mv-R { background: #E5333B; color: #fff; }
+.mv-L { background: #FF8A00; }
+.mv-F { background: #00B36B; color: #fff; }
+.mv-B { background: #1E6FE0; color: #fff; }
+
+.mv-tip {
+  margin-top: 6px; font-size: 12px; color: #ffd76a;
+  background: rgba(0,0,0,.25); border-radius: 6px; padding: 5px 9px;
+}
+
 /* ---------- 底栏 ---------- */
 .foot {
   text-align: center; font-size: 12px; color: var(--text-dim);

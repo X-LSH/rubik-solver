@@ -43,6 +43,15 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
   const groupCount = await page.locator('.step-group').count();
   console.log('[4] 步骤卡片:', stepCount, '个 / 分组:', groupCount, '个');
 
+  // 公式符号徽章化 + 点击解释
+  await page.locator('.step-formula .mv').first().click();
+  const tipOk = await page.evaluate(() => {
+    const tip = document.querySelector('.mv-tip:not([hidden])');
+    return !!tip && tip.textContent.length > 3;
+  });
+  console.log('[4b] 公式符号点击解释:', tipOk ? 'OK' : 'FAIL');
+  if (!tipOk) process.exit(1);
+
   // 播放演示（快速）
   await page.evaluate(() => { document.getElementById('speed').value = 90; document.getElementById('speed').dispatchEvent(new Event('input')); });
   await page.click('#btnPlay');
@@ -76,12 +85,42 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
   console.log('    最终徽章:', finalBadge.trim());
   await page.screenshot({ path: 'test/shot-5-done.png' });
 
+  // 重放验证：播放完成后直接点播放（按钮应显示"重放"），自动回到起点并完整重放复原
+  const replayBtnText = await page.textContent('#btnPlay');
+  console.log('[5b] 播放完成后按钮文字:', replayBtnText.trim(), '(应含"重放")');
+  await page.click('#btnPlay');
+  await page.waitForTimeout(1200);
+  const replaying = await page.evaluate(() => document.getElementById('btnPlay').textContent.includes('暂停'));
+  console.log('[5c] 点播放自动重放:', replaying ? '进行中 OK' : 'FAIL');
+  if (!replaying) process.exit(1);
+  const t1 = Date.now();
+  let done2 = false;
+  while (Date.now() - t1 < 90000) {
+    await page.waitForTimeout(1000);
+    const st = await page.textContent('#status');
+    if (st.includes('演示完成')) { done2 = true; break; }
+    const playing2 = await page.evaluate(() => document.getElementById('btnPlay').textContent.includes('暂停'));
+    if (!playing2) break;
+  }
+  console.log('[5d] 重放完成:', done2, '耗时', Math.round((Date.now() - t1) / 1000) + 's');
+  if (!done2) process.exit(1);
+
   // 展开图编辑：切到编辑 tab，点击一格
   await page.click('.tab[data-tab="edit"]');
   await page.waitForTimeout(200);
   const cells = await page.locator('.net-cell').count();
   await page.locator('.net-cell').nth(1).click();
   console.log('[6] 展开图格子:', cells, '个，点击涂色 OK');
+  // 编辑页内嵌校验条同步 + 中心格禁改
+  const editBadge = await page.textContent('#editBadge');
+  console.log('[6b] 编辑页校验条:', editBadge.trim(), '(应显示非法/数量原因)');
+  const centerBgBefore = await page.$eval('#net .net-cell[data-idx="4"]', el => el.style.background);
+  await page.click('#net .net-cell[data-idx="4"]');
+  await page.click('#net .net-cell[data-idx="4"]');
+  const centerBgAfter = await page.$eval('#net .net-cell[data-idx="4"]', el => el.style.background);
+  const centerHint = await page.textContent('#status');
+  console.log('[6c] 中心格禁改:', centerBgBefore === centerBgAfter && centerHint.includes('中心') ? 'OK' : 'FAIL', centerHint.trim());
+  if (!(centerBgBefore === centerBgAfter && centerHint.includes('中心'))) process.exit(1);
   await page.screenshot({ path: 'test/shot-6-edit.png' });
 
   console.log('\n页面错误:', errors.length ? errors : '无');

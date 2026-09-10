@@ -58,12 +58,17 @@
           cell.addEventListener('click', function () {
             if (busy || playing) return; // 动画/播放中禁止编辑，避免状态竞争
             var i = parseInt(this.dataset.idx, 10);
+            if ([4, 13, 22, 31, 40, 49].indexOf(i) >= 0) {
+              updateStatus('中心块决定配色参照，不可修改');
+              return;
+            }
             if (editColor) {
               state[i] = editColor;
             } else {
               var order = ['W', 'Y', 'R', 'O', 'G', 'B'];
               state[i] = order[(order.indexOf(state[i]) + 1) % 6];
             }
+            if (window.CubeApp) window.CubeApp.markSuspects([]); // 修改后旧的可疑标记已过时
             syncState();
           });
           cell.dataset.idx = idx;
@@ -88,14 +93,14 @@
     renderNet();
     view.setState(state);
     var v = E.validate(state);
+    var text = v.ok ? '状态合法，可求解' : v.reason;
+    var cls = v.ok ? 'badge ok' : 'badge bad';
     var badge = $('#validBadge');
-    if (v.ok) {
-      badge.textContent = '状态合法';
-      badge.className = 'badge ok';
-    } else {
-      badge.textContent = v.reason;
-      badge.className = 'badge bad';
-    }
+    badge.textContent = text;
+    badge.className = cls;
+    // 编辑 pane 内嵌校验条：手机上编辑展开图时无需滚动即可看到校验结果
+    var editBadge = $('#editBadge');
+    if (editBadge) { editBadge.textContent = text; editBadge.className = cls; }
     $('#btnSolve').disabled = !v.ok;
   }
 
@@ -229,6 +234,15 @@
     oll: { name: '④ 顶面朝向 OLL', color: '#e05a7a' },
     pll: { name: '⑤ 顶层排列 PLL', color: '#9a6ff0' }
   };
+  // 转动记号 → 人话（点击公式符号时显示）
+  var FACE_NAME = { U: '顶层', D: '底层', R: '右面', L: '左面', F: '前面', B: '后面' };
+  var MOVE_TEXT = {};
+  ['U', 'D', 'R', 'L', 'F', 'B'].forEach(function (f) {
+    MOVE_TEXT[f] = FACE_NAME[f] + '顺时针转 90°';
+    MOVE_TEXT[f + "'"] = FACE_NAME[f] + '逆时针转 90°';
+    MOVE_TEXT[f + '2'] = FACE_NAME[f] + '旋转 180°（转两下）';
+  });
+
   function renderSteps() {
     var box = $('#steps');
     box.innerHTML = '';
@@ -249,17 +263,30 @@
       var card = document.createElement('div');
       card.className = 'step-card';
       card.dataset.stepIdx = si;
-      var formula = s.moves.join(' ');
+      var tokens = s.moves.map(function (m) {
+        var p = E.parseMove(m);
+        return '<button class="mv mv-' + p.face + '" data-mv="' + m + '" title="点击看含义">' + m + '</button>';
+      }).join('');
       card.innerHTML = '<div class="step-title">' + s.title + '</div>' +
         '<div class="step-desc">' + s.desc + '</div>' +
-        '<div class="step-formula">' + formula + '</div>';
-      card.addEventListener('click', function () { jumpToStep(si); });
+        '<div class="step-formula">' + tokens + '</div>' +
+        '<div class="mv-tip" hidden></div>';
+      card.addEventListener('click', function (e) {
+        var mvEl = e.target.closest ? e.target.closest('.mv') : null;
+        if (mvEl) { // 点击公式符号：显示含义，不跳步
+          e.stopPropagation();
+          var tip = card.querySelector('.mv-tip');
+          tip.textContent = MOVE_TEXT[mvEl.dataset.mv];
+          tip.hidden = false;
+          return;
+        }
+        jumpToStep(si);
+      });
       box.appendChild(card);
     });
     highlightStep();
   }
-  function highlightStep() {
-    $$('.step-card').forEach(function (c) {
+  function highlightStep() {    $$('.step-card').forEach(function (c) {
       c.classList.toggle('current', parseInt(c.dataset.stepIdx, 10) === playIndex);
       c.classList.toggle('done', parseInt(c.dataset.stepIdx, 10) < playIndex);
     });
@@ -277,6 +304,8 @@
   function togglePlay() {
     if (!solution) { updateStatus('请先求解'); return; }
     if (playing) { stopPlay(); return; }
+    // 播放完毕后再点播放 = 从头重放（此前 flatIdx 停在末尾导致点播放无反应）
+    if (flatIdx >= flatMoves.length && flatMoves.length) jumpToStep(0);
     playing = true;
     $('#btnPlay').textContent = '⏸ 暂停';
     playLoop();
@@ -288,7 +317,12 @@
   }
   function playLoop() {
     if (!playing) return;
-    if (flatIdx >= flatMoves.length) { stopPlay(); updateStatus('演示完成，魔方已复原 🎉'); return; }
+    if (flatIdx >= flatMoves.length) {
+      stopPlay();
+      $('#btnPlay').textContent = '▶ 重放';
+      updateStatus('演示完成，魔方已复原 🎉 再点播放可从头重放');
+      return;
+    }
     var fm = flatMoves[flatIdx];
     playIndex = fm.stepIdx;
     highlightStep();
