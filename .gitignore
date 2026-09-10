@@ -1,6 +1,7 @@
 node_modules/
 .pwtest/
 test/*.png
+.workbuddy/
 Thumbs.db
 Desktop.ini
 .DS_Store

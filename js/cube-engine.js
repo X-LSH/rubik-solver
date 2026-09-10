@@ -48,7 +48,16 @@
   var PNS = [];
   for (var i0 = 0; i0 < 54; i0++) PNS.push(faceletToPN(i0));
 
-  /* ---------- 置换表 ---------- */
+  /* ---------- 置换表 ----------
+   * 语义：applyMove 执行 out[j] = state[perm[j]]，即 perm[j] 是「转到 j 的那个源贴纸」；
+   * 未参与转动的贴纸保持自我映射 perm[j] = j。
+   *
+   * 中层转动（WCA 记号，方向随所属面）：
+   *   M 跟随 L（转 x 轴中层，方向同 L）
+   *   E 跟随 D（转 y 轴中层，方向同 D）
+   *   S 跟随 F（转 z 轴中层，方向同 F）
+   * 均只转中层（坐标为 0 的那一层），不影响 U/D/R/L/F/B 任意面。
+   */
   function compose(P, Q) { // 先 Q 后 P：out[j] = P[Q[j]]
     var out = new Array(54);
     for (var j = 0; j < 54; j++) out[j] = P[Q[j]];
@@ -67,10 +76,22 @@
       }
       map[f] = [src, compose(src, src), compose(compose(src, src), src)];
     });
+    // 三个中层转动：轴固定，转层坐标为 0，方向复用所属面的旋转函数
+    [{ k: 'M', rot: ROT.L, ax: 0 }, { k: 'E', rot: ROT.D, ax: 1 }, { k: 'S', rot: ROT.F, ax: 2 }]
+      .forEach(function (m) {
+        var src = new Array(54);
+        for (var j = 0; j < 54; j++) src[j] = j;
+        for (var i = 0; i < 54; i++) {
+          var pn = PNS[i];
+          if (pn.pos[m.ax] !== 0) continue; // 仅中层
+          src[pnToFacelet(m.rot(pn.pos), m.rot(pn.nrm))] = i;
+        }
+        map[m.k] = [src, compose(src, src), compose(compose(src, src), src)];
+      });
     return map;
   })();
 
-  var MOVE_RE = /^([URFDLB])(')?(2)?$/;
+  var MOVE_RE = /^([URFDLBMES])(')?(2)?$/;
   function parseMove(m) {
     var mt = MOVE_RE.exec(m);
     if (!mt) throw new Error('非法转动记号: ' + m);
