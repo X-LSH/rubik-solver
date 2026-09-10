@@ -25,7 +25,17 @@ async function measurePlayer(page) {
     const speedEl = document.querySelector('#tab-steps .speed-ctl');
     const speed = { display: getComputedStyle(speedEl).display, ...rect(speedEl) };
     const notation = rect(document.querySelector('.notation-help'));
-    return { vw, vh, side, player, btns, speed, notation };
+    // 主控制区（随机打乱/复原/求解）与整体页面结构
+    const cubePanel = rect(document.querySelector('.panel-cube'));
+    const ctrlButtons = [...document.querySelectorAll('.ctrl-row .btn')].map(el => {
+      const r = rect(el);
+      return { id: el.id, display: getComputedStyle(el).display, ...r };
+    });
+    const foot = document.querySelector('.foot');
+    const paneActive = document.querySelector('.tab-pane.active');
+    const footRect = foot ? rect(foot) : null;
+    const paneRect = paneActive ? rect(paneActive) : null;
+    return { vw, vh, side, player, btns, speed, notation, cubePanel, ctrlButtons, footRect, paneRect };
   });
 }
 
@@ -72,7 +82,22 @@ async function testViewport(browser, w, h, label, expectOneRow) {
       m.speed.y >= Math.max.apply(null, btnYs) + m.btns[0].h - 2 && m.speed.w > m.player.w * 0.8,
       'speed.y=' + Math.round(m.speed.y) + ' speed.w=' + Math.round(m.speed.w));
   }
-  // 6) 无页面脚本错误
+  // 6) 主控制按钮（随机打乱/复原/求解）必须完整可见且在 3D 面板内
+  //    （回归背景：移动端面板被压缩 + overflow:hidden 把按钮行整个裁掉，真机反馈"看不到三个按钮"）
+  check('主控制按钮 3 枚全部可见', m.ctrlButtons.length === 3 && m.ctrlButtons.every(b => b.display !== 'none' && b.h > 0),
+    JSON.stringify(m.ctrlButtons.map(b => ({ id: b.id, display: b.display, h: Math.round(b.h) }))));
+  check('主控制按钮未被面板裁剪（bottom ≤ 面板底）',
+    m.ctrlButtons.every(b => b.bottom <= m.cubePanel.bottom + 1),
+    'btns.bottom=' + m.ctrlButtons.map(b => Math.round(b.bottom)).join(',') + ' panel.bottom=' + Math.round(m.cubePanel.bottom));
+  if (!expectOneRow) { // 移动端：三枚按钮必须同一行（窄屏不得折行）
+    check('移动端：主控制按钮同一行', sameRow(m.ctrlButtons), 'ys=' + m.ctrlButtons.map(yOf).map(Math.round).join(','));
+  }
+  // 7) 移动端页面结构：底栏不得与面板内容重叠（flex:1 抢占空间的回归）
+  if (!expectOneRow && m.footRect && m.paneRect) {
+    check('底栏与面板内容不重叠', m.paneRect.bottom <= m.footRect.y + 1,
+      'pane.bottom=' + Math.round(m.paneRect.bottom) + ' foot.y=' + Math.round(m.footRect.y));
+  }
+  // 8) 无页面脚本错误
   check('无页面错误', errors.length === 0, errors.join('; '));
   await page.close();
 }

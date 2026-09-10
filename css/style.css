@@ -338,10 +338,19 @@ body.scan-mode .panel-cube { display: none; }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 860px) {
-  .layout { grid-template-columns: 1fr; padding: 12px; gap: 12px; height: auto; overflow: visible; }
-  .cube-area { min-height: 300px; }
+  /* 移动端纵向堆叠：布局高度完全由内容决定（flex:0 0 auto 防止 flex:1 抢占空间
+     导致底栏与面板内容重叠），各面板亦不裁剪、不压缩 */
+  .layout {
+    grid-template-columns: 1fr; padding: 12px; gap: 12px;
+    height: auto; min-height: 0; overflow: visible; flex: 0 0 auto;
+  }
+  /* 移动端纵向堆叠：面板高度必须由内容决定。
+     此前 .panel 的 overflow:hidden + .cube-area 的 300px 硬下限，
+     在 390px 视口下面板被压到 327px，把「随机打乱/复原/求解」按钮行挤出裁剪区（真机反馈 bug） */
+  .panel { padding: 14px; height: auto; overflow: visible; }
+  .panel-cube { height: auto; }
+  .cube-area { min-height: 240px; flex: 0 0 auto; height: 300px; }
   .topbar { flex-direction: column; gap: 10px; padding: 12px; }
-  .panel { padding: 14px; }
   .steps { max-height: 46vh; }
   .panel-side { max-height: none; }
 
@@ -353,4 +362,9 @@ body.scan-mode .panel-cube { display: none; }
     padding-top: 6px; border-top: 1px dashed var(--border);
   }
   .speed-ctl input { flex: 1; width: auto; }
+
+  /* 主控制按钮：三枚固定一行等分，避免窄屏（≤360px）折行把「求解」挤到下一行 */
+  .ctrl-row { flex-wrap: nowrap; }
+  .ctrl-row .btn { flex: 1 1 0; min-width: 0; padding: 11px 6px; white-space: nowrap; }
+  .ctrl-row .btn.primary { flex-grow: 1.25; }
 }
