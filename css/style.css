@@ -344,4 +344,13 @@ body.scan-mode .panel-cube { display: none; }
   .panel { padding: 14px; }
   .steps { max-height: 46vh; }
   .panel-side { max-height: none; }
+
+  /* 播放器固定两行：按钮一行 + 速度滑块整行，杜绝 flex-wrap 任意折行导致的控件错位 */
+  .player { row-gap: 2px; }
+  .speed-ctl {
+    width: 100%; margin-left: 0;
+    justify-content: space-between;
+    padding-top: 6px; border-top: 1px dashed var(--border);
+  }
+  .speed-ctl input { flex: 1; width: auto; }
 }

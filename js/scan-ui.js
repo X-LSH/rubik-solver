@@ -200,9 +200,19 @@
       if (!snaps[f]) { note.textContent = '还有未拍摄的面'; return; }
       grids[f] = snaps[f].grid;
     }
-    var cls = CS.classifyCube(grids);          // {faces, margins}
-    var asm = CS.assembleCube(cls.faces, cls.margins); // 面归属 + 旋转搜索
-    window.CubeApp.applyScannedState(asm.state);
+    var cls, asm;
+    try {
+      cls = CS.classifyCube(grids);          // {faces, margins}
+      asm = CS.assembleCube(cls.faces, cls.margins); // 面归属 + 旋转搜索
+    } catch (e) {
+      // 识别核心抛错（如六面中心颜色退化）：明确警示，不应用任何状态
+      guide.className = 'scan-guide bad';
+      guide.textContent = '⚠ 识别失败——' + e.message;
+      note.textContent = '识别错误：' + e.message
+        + ' 可尝试：重新拍摄，让每个面的中心块对准取景框中央并充满九宫格。';
+      return;
+    }
+    if (asm.state) window.CubeApp.applyScannedState(asm.state); // owner 失败分支无 state，跳过应用
     if (asm.ok) {
       guide.className = 'scan-guide ok';
       guide.textContent = '✓ 识别成功：已自动判断面归属与朝向，状态合法，切到 3D 魔方即可求解';

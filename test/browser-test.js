@@ -5,7 +5,7 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
 
 (async () => {
   const browser = await chromium.launch({
-    executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+    executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     headless: true,
     args: ['--no-sandbox']
   });
@@ -57,13 +57,15 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
   await page.click('#btnPlay');
   await page.waitForTimeout(1000);
   await page.screenshot({ path: 'test/shot-4-playing.png' });
-  // 轮询直到播放完成（最多 90s）
+  // 轮询直到播放完成（最多 90s）。条件必须同时校验按钮文字（含"重放"），
+  // 防止旧状态文字残留导致假阳性（点击重放后旧"演示完成"文案会短暂残留）
   const t0 = Date.now();
   let done = false;
   while (Date.now() - t0 < 60000) {
     await page.waitForTimeout(1000);
     const st = await page.textContent('#status');
-    if (st.includes('演示完成')) { done = true; break; }
+    const btnNow = await page.textContent('#btnPlay');
+    if (st.includes('演示完成') && btnNow.includes('重放')) { done = true; break; }
     const playing = await page.evaluate(() => document.getElementById('btnPlay').textContent.includes('暂停'));
     if (!playing) break;
   }
@@ -98,7 +100,8 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
   while (Date.now() - t1 < 90000) {
     await page.waitForTimeout(1000);
     const st = await page.textContent('#status');
-    if (st.includes('演示完成')) { done2 = true; break; }
+    const btnNow2 = await page.textContent('#btnPlay');
+    if (st.includes('演示完成') && btnNow2.includes('重放')) { done2 = true; break; }
     const playing2 = await page.evaluate(() => document.getElementById('btnPlay').textContent.includes('暂停'));
     if (!playing2) break;
   }

@@ -124,6 +124,16 @@
       }
     }
     permutations(perm, 0);
+    if (!bestPerm) throw new Error('中心块颜色无法匹配标准配色');
+    // 中心色退化检测：六面中心两两过近（如六面拍了同一张图）时，
+    // 白平衡与面归属都不可信——此时任何"合法"组装结果都是假的，必须明确拒绝
+    for (var a = 0; a < 6; a++) {
+      for (var b = a + 1; b < 6; b++) {
+        if (dE2(centerLab[a], centerLab[b]) < 25) { // ΔE < 5
+          throw new Error('六个面的中心块颜色过于接近，无法判断面归属——请确认每个面拍摄的是不同颜色的中心块');
+        }
+      }
+    }
     // 每类（字母）的参考 Lab = 该类中心实测 Lab（中心块标定）
     var classLab = {};
     FACE_KEYS.forEach(function (f, i) { classLab[bestPerm[i]] = centerLab[i]; });

@@ -308,6 +308,7 @@
     if (flatIdx >= flatMoves.length && flatMoves.length) jumpToStep(0);
     playing = true;
     $('#btnPlay').textContent = '⏸ 暂停';
+    updateStatus('演示中…'); // 立即覆盖旧文案（如"演示完成"残留），避免误导
     playLoop();
   }
   function stopPlay() {

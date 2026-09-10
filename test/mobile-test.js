@@ -5,7 +5,7 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
 
 (async () => {
   const browser = await chromium.launch({
-    executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+    executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     headless: true, args: ['--no-sandbox']
   });
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -29,7 +29,10 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
   let done = false;
   while (Date.now() - t0 < 90000) {
     await page.waitForTimeout(1000);
-    if ((await page.textContent('#status')).includes('演示完成')) { done = true; break; }
+    const st = await page.textContent('#status');
+    const btnNow = await page.textContent('#btnPlay');
+    // 同时校验按钮文字含"重放"，防止旧状态文字残留导致假阳性
+    if (st.includes('演示完成') && btnNow.includes('重放')) { done = true; break; }
   }
   await page.screenshot({ path: 'test/shot-mobile-3.png' });
   const solved = await page.evaluate(() => {

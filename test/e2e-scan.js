@@ -13,7 +13,7 @@ function t(name, ok, extra) {
 
 (async () => {
   const browser = await chromium.launch({
-    executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+    executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     headless: true,
     args: ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']
   });
@@ -68,10 +68,44 @@ function t(name, ok, extra) {
   t('S6 应用按钮解锁', thumbState.applyEnabled);
   t('S7 引导条提示拍齐', thumbState.guide.includes('拍齐'), thumbState.guide);
 
-  // 应用到魔方
-  await page.click('#btnScanApply');
-  await page.waitForTimeout(300);
-  const applied = await page.evaluate(() => {
+  // S8-S10 成功应用场景：上传六张不同色图逐面拍摄（假摄像头画面六面同图属退化输入，
+  // 会被 classifyCube 的中心退化检测正确拒绝——这本身由 S21 覆盖）
+  const pageA = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+  pageA.on('pageerror', e => errors.push('PAGEERROR(pA): ' + e.message));
+  await pageA.goto(url);
+  await pageA.waitForTimeout(300);
+  await pageA.click('.tab[data-tab="scan"]');
+  await pageA.evaluate(() => {
+    navigator.mediaDevices.getUserMedia = () => Promise.reject({ name: 'NotAllowedError' });
+  });
+  await pageA.click('#btnScanStart');
+  await pageA.waitForTimeout(200);
+  const faceColors = ['#f2f5f7', '#ffd500', '#e5333b', '#ff8a00', '#00b36b', '#1e6fe0']; // W Y R O G B
+  for (const color of faceColors) {
+    await pageA.evaluate(color => new Promise(res => {
+      const cv = document.createElement('canvas');
+      cv.width = 480; cv.height = 360;
+      const g = cv.getContext('2d');
+      g.fillStyle = '#202a38'; g.fillRect(0, 0, 480, 360);
+      const side = 480 * 0.62, x0 = (480 - side) / 2, y0 = (360 - side) / 2;
+      g.fillStyle = color;
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++)
+        g.fillRect(x0 + c * side / 3 + 2, y0 + r * side / 3 + 2, side / 3 - 4, side / 3 - 4);
+      cv.toBlob(b => {
+        const dt = new DataTransfer();
+        dt.items.add(new File([b], 'face.png', { type: 'image/png' }));
+        const input = document.getElementById('scanFile');
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change'));
+        setTimeout(res, 150);
+      });
+    }), color);
+    await pageA.waitForTimeout(150);
+    await pageA.click('#btnShot');
+  }
+  await pageA.click('#btnScanApply');
+  await pageA.waitForTimeout(300);
+  const applied = await pageA.evaluate(() => {
     const bgs = [...document.querySelectorAll('#net .net-cell')].map(el => el.style.background);
     const white = bgs.filter(b => b.includes('242, 245, 247')).length;
     return {
@@ -81,8 +115,9 @@ function t(name, ok, extra) {
     };
   });
   t('S8 应用后切回状态编辑 tab', applied.editActive);
-  t('S9 展开图状态已被替换（非白格 > 20，fake 视频非纯白画面）', applied.nonWhite > 20, 'nonWhite=' + applied.nonWhite);
+  t('S9 展开图状态已被替换（非白格 > 20，六色纯面图应用）', applied.nonWhite > 20, 'nonWhite=' + applied.nonWhite);
   t('S10 应用有结果反馈', applied.note.length > 0, applied.note);
+  await pageA.close();
 
   // 权限拒绝降级（mock getUserMedia reject）
   const page2 = await browser.newPage({ viewport: { width: 1280, height: 860 } });
@@ -125,8 +160,39 @@ function t(name, ok, extra) {
   await page2.click('#btnShot');
   t('S13 上传后可拍摄本面', await page2.$eval('.scan-face-thumb', el => el.classList.contains('done')));
 
-  // 六面同一张图（中央全白）→ 中心匹配为双射必产生非法组合 → 旋转搜索失败 + 可疑格引导
-  for (let i = 0; i < 5; i++) await page2.click('#btnShot');
+  // 构造"非退化但非法"输入：六面中心六色分明（可正常判断面归属），
+  // 但 Y 面混入 1 格红色 → 全局 R=10/Y=8 计数非法 → 旋转搜索失败 + 可疑格黄框引导
+  // （此前用"六面同一张图"：六中心同色属于退化输入，浏览器排序细节决定其行为，不可靠）
+  const moreFaces = [
+    { color: '#ffd500', badCell: true },  // Y 面 + 1 格红
+    { color: '#e5333b' }, { color: '#ff8a00' }, { color: '#00b36b' }, { color: '#1e6fe0' }
+  ];
+  for (const fc of moreFaces) {
+    await page2.evaluate(color => new Promise(res => {
+      const cv = document.createElement('canvas');
+      cv.width = 480; cv.height = 360;
+      const g = cv.getContext('2d');
+      g.fillStyle = '#202a38'; g.fillRect(0, 0, 480, 360);
+      const side = 480 * 0.62, x0 = (480 - side) / 2, y0 = (360 - side) / 2;
+      g.fillStyle = color;
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++)
+        g.fillRect(x0 + c * side / 3 + 2, y0 + r * side / 3 + 2, side / 3 - 4, side / 3 - 4);
+      if (color === '#ffd500') { // 错色格：第一格画红
+        g.fillStyle = '#e5333b';
+        g.fillRect(x0 + 2, y0 + 2, side / 3 - 4, side / 3 - 4);
+      }
+      cv.toBlob(b => {
+        const dt = new DataTransfer();
+        dt.items.add(new File([b], 'face.png', { type: 'image/png' }));
+        const input = document.getElementById('scanFile');
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change'));
+        setTimeout(res, 150); // 等 img.onload 完成采样
+      });
+    }), fc.color);
+    await page2.waitForTimeout(150);
+    await page2.click('#btnShot');
+  }
   await page2.click('#btnScanApply');
   await page2.waitForTimeout(300);
   const asmFail = await page2.evaluate(() => ({
@@ -149,6 +215,48 @@ function t(name, ok, extra) {
   await page2.click('.scan-face-thumb .f-rot');
   const rotNote = await page2.evaluate(() => document.getElementById('scanNote').textContent);
   t('S20 点击 ⟳ 旋转单面并提示重新应用', rotNote.includes('旋转 90°'), rotNote);
+
+  // S21 退化输入：六面同一张图（六中心同色）→ 必须明确报错，绝不允许"识别成功"
+  // （回归背景：Chrome 下平衡贪心恰好把退化输入组成"复原态"并通过 validate，业务上是错误结果）
+  const page3 = await browser.newPage({ viewport: { width: 1280, height: 860 } });
+  page3.on('pageerror', e => errors.push('PAGEERROR(p3): ' + e.message));
+  await page3.goto(url);
+  await page3.waitForTimeout(300);
+  await page3.click('.tab[data-tab="scan"]');
+  await page3.evaluate(() => {
+    navigator.mediaDevices.getUserMedia = () => Promise.reject({ name: 'NotAllowedError' });
+  });
+  await page3.click('#btnScanStart');
+  await page3.waitForTimeout(200);
+  await page3.evaluate(() => new Promise(res => {
+    const cv = document.createElement('canvas');
+    cv.width = 480; cv.height = 360;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#202a38'; g.fillRect(0, 0, 480, 360);
+    const side = 480 * 0.62, x0 = (480 - side) / 2, y0 = (360 - side) / 2;
+    g.fillStyle = '#f2f5f7';
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++)
+      g.fillRect(x0 + c * side / 3 + 2, y0 + r * side / 3 + 2, side / 3 - 4, side / 3 - 4);
+    cv.toBlob(b => {
+      const dt = new DataTransfer();
+      dt.items.add(new File([b], 'face.png', { type: 'image/png' }));
+      const input = document.getElementById('scanFile');
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change'));
+      setTimeout(res, 150);
+    });
+  }));
+  await page3.waitForTimeout(200);
+  for (let i = 0; i < 6; i++) await page3.click('#btnShot');
+  await page3.click('#btnScanApply');
+  await page3.waitForTimeout(300);
+  const degen = await page3.evaluate(() => ({
+    note: document.getElementById('scanNote').textContent,
+    guideBad: document.getElementById('scanGuide').className.includes('bad')
+  }));
+  t('S21 退化输入（六面同图）明确报错 + 警示横幅',
+    (degen.note.includes('过于接近') || degen.note.includes('识别错误')) && degen.guideBad, degen.note);
+  await page3.close();
 
   t('无页面 JS 错误', errors.length === 0, errors.join(' | '));
   await browser.close();

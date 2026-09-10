@@ -14,7 +14,7 @@ const squash = (s) => String(s).replace(/\s/g, '');
 
 (async () => {
   const browser = await chromium.launch({
-    executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+    executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     headless: true,
     args: ['--no-sandbox']
   });
