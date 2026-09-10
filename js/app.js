@@ -208,6 +208,8 @@
         var dt = Math.round(performance.now() - t0);
         r.startState = state.slice();
         solution = r;
+        // 供自动化测试做引擎级重放校验（不影响正常逻辑）
+        if (typeof window !== 'undefined') window.__solutionForTest = r;
         flatMoves = [];
         r.steps.forEach(function (s, si) {
           s.moves.forEach(function (m) { flatMoves.push({ stepIdx: si, move: m }); });
@@ -215,8 +217,9 @@
         flatIdx = 0; playIndex = 0;
         renderSteps();
         // 自动切到步骤 tab
+        var MODE_NAME = { lbl: '层先法', cfop: 'CFOP', '4lll': '四步法 4LLL' };
         showTab('steps');
-        updateStatus((mode === 'lbl' ? '层先法' : 'CFOP') + '：共 ' + r.totalMoves + ' 步 / ' + r.steps.length + ' 个阶段（' + dt + 'ms）— 点击播放演示');
+        updateStatus((MODE_NAME[mode] || mode) + '：共 ' + r.totalMoves + ' 步 / ' + r.steps.length + ' 个阶段（' + dt + 'ms）— 点击播放演示');
       } catch (e) {
         updateStatus('求解失败：' + e.message);
       }
@@ -232,7 +235,11 @@
     middle: { name: '③ 中层棱块', color: '#f0a24a' },
     f2l: { name: 'F2L（前两层）', color: '#39c46f' },
     oll: { name: '④ 顶面朝向 OLL', color: '#e05a7a' },
-    pll: { name: '⑤ 顶层排列 PLL', color: '#9a6ff0' }
+    pll: { name: '⑤ 顶层排列 PLL', color: '#9a6ff0' },
+    // 四步法 4LLL 顶层阶段
+    'll-eo': { name: '① 顶棱朝向（十字）', color: '#e05a7a' },
+    'll-co': { name: '② 顶角朝向（顶面同色）', color: '#f0a24a' },
+    'll-pll': { name: '③ 顶层归位', color: '#9a6ff0' }
   };
   // 转动记号 → 人话（点击公式符号时显示）
   var FACE_NAME = { U: '顶层', D: '底层', R: '右面', L: '左面', F: '前面', B: '后面' };
