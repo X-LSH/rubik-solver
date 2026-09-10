@@ -217,7 +217,7 @@
         flatIdx = 0; playIndex = 0;
         renderSteps();
         // 自动切到步骤 tab
-        var MODE_NAME = { lbl: '层先法', cfop: 'CFOP', '4lll': '四步法 4LLL' };
+        var MODE_NAME = { lbl: '层先法', cfop: 'CFOP', '4lll': '四步法 4LLL', kociemba: 'Kociemba 两阶段' };
         showTab('steps');
         updateStatus((MODE_NAME[mode] || mode) + '：共 ' + r.totalMoves + ' 步 / ' + r.steps.length + ' 个阶段（' + dt + 'ms）— 点击播放演示');
       } catch (e) {
@@ -239,7 +239,10 @@
     // 四步法 4LLL 顶层阶段
     'll-eo': { name: '① 顶棱朝向（十字）', color: '#e05a7a' },
     'll-co': { name: '② 顶角朝向（顶面同色）', color: '#f0a24a' },
-    'll-pll': { name: '③ 顶层归位', color: '#9a6ff0' }
+    'll-pll': { name: '③ 顶层归位', color: '#9a6ff0' },
+    // Kociemba 两阶段
+    'kc-ph1': { name: '① 阶段 1 · 归入 G1 子群', color: '#5b8def' },
+    'kc-ph2': { name: '② 阶段 2 · 半转归位', color: '#9a6ff0' }
   };
   // 转动记号 → 人话（点击公式符号时显示）
   var FACE_NAME = { U: '顶层', D: '底层', R: '右面', L: '左面', F: '前面', B: '后面' };

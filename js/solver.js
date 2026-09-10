@@ -12,6 +12,8 @@
 
   var E = (typeof module !== 'undefined' && module.exports) ? require('./cube-engine.js') : global.CubeEngine;
   var FACES = E.FACES;
+  // Kociemba 两阶段求解器（独立文件，惰性建表；浏览器/Node 双环境可用）
+  var KC = (typeof module !== 'undefined' && module.exports) ? require('./kociemba.js') : global.CubeKociemba;
 
   /* ---------------- 基础工具 ---------------- */
 
@@ -489,6 +491,18 @@
   function solve(state, options) {
     options = options || {};
     var mode = options.mode || 'lbl';
+
+    // Kociemba 走完全独立的两阶段搜索，不进入下面的分步管线，
+    // 因此不会影响 LBL / CFOP / 4LLL 的任何既有行为。
+    if (mode === 'kociemba') {
+      if (!KC) throw new Error('Kociemba 求解器未加载（缺少 kociemba.js）');
+      var res = KC.solve(state, options);
+      if (!E.isSolved(E.applySeq(state, res.phase1.concat(res.phase2)))) {
+        throw new Error('Kociemba 求解失败：结果未复原');
+      }
+      return { steps: res.steps, totalMoves: res.totalMoves, kociemba: { phase1: res.phase1, phase2: res.phase2, ms: res.ms } };
+    }
+
     var cur = state.slice();
     var steps = [];
 
