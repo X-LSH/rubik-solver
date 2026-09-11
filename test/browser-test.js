@@ -32,8 +32,8 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
   await page.waitForTimeout(2500);
   const solveStatus = await page.textContent('#status');
   console.log('[3] 求解:', solveStatus.trim());
-  const badge = await page.textContent('#validBadge');
-  console.log('    状态徽章:', badge.trim());
+  const badge = await page.textContent('#editBadge');
+  console.log('    状态徽章(编辑tab内嵌):', badge.trim());
 
   // 切到步骤 tab
   await page.click('.tab[data-tab="steps"]');
@@ -83,8 +83,8 @@ const { chromium } = require('../.pwtest/node_modules/playwright-core');
     return { solved, faceCount: Object.keys(faces).length };
   });
   console.log('    3D 复原校验:', JSON.stringify(solvedCheck), '(solved 应为 true)');
-  const finalBadge = await page.textContent('#validBadge');
-  console.log('    最终徽章:', finalBadge.trim());
+  const finalBadge = await page.textContent('#editBadge');
+  console.log('    最终徽章(编辑tab内嵌):', finalBadge.trim());
   await page.screenshot({ path: 'test/shot-5-done.png' });
 
   // 重放验证：播放完成后直接点播放（按钮应显示"重放"），自动回到起点并完整重放复原

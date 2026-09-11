@@ -43,7 +43,7 @@ const squash = (s) => String(s).replace(/\s/g, '');
   await page.waitForTimeout(120);
   const after = await bgOf(netCell(0));
   t('A2 画笔涂色后展开图立即变绿', squash(after) === squash(hex2rgb(HEX.G)), after);
-  const badge1 = await page.textContent('#validBadge');
+  const badge1 = await page.textContent('#editBadge');
   t('A3 badge 显示数量错误（8 次/应为 9 次）', badge1.includes('8') && badge1.includes('9'), badge1.trim());
   t('A4 数量错误时求解按钮禁用', (await page.$eval('#btnSolve', el => el.disabled)) === true);
 
@@ -66,7 +66,7 @@ const squash = (s) => String(s).replace(/\s/g, '');
   await page.waitForTimeout(120);
   t('B2 交换后展开图 slot0 = 原 slot1 颜色（再次验证实时刷新）', squash(await bgOf(netCell(slots[0]))) === squash(colB));
   t('B3 交换后展开图 slot1 = 原 slot0 颜色', squash(await bgOf(netCell(slots[1]))) === squash(colA));
-  const badge2 = await page.textContent('#validBadge');
+  const badge2 = await page.textContent('#editBadge');
   t('B4 badge 提示「颜色数量正常，但不可复原」', badge2.includes('颜色数量正常') && badge2.includes('不可复原'), badge2.trim());
   t('B5 badge 指出角块被单独扭转', badge2.includes('扭转'), badge2.trim());
   t('B6 不可解状态时求解按钮禁用', (await page.$eval('#btnSolve', el => el.disabled)) === true);

@@ -95,10 +95,8 @@
     var v = E.validate(state);
     var text = v.ok ? '状态合法，可求解' : v.reason;
     var cls = v.ok ? 'badge ok' : 'badge bad';
-    var badge = $('#validBadge');
-    badge.textContent = text;
-    badge.className = cls;
-    // 编辑 pane 内嵌校验条：手机上编辑展开图时无需滚动即可看到校验结果
+    // 校验条只保留编辑 pane 内嵌这一处：紧贴调色盘，改一格立刻看到结果，
+    // 手机上也无需滚动。（旧版左面板的 #validBadge 与它内容重复，已移除）
     var editBadge = $('#editBadge');
     if (editBadge) { editBadge.textContent = text; editBadge.className = cls; }
     $('#btnSolve').disabled = !v.ok;
