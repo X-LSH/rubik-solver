@@ -217,7 +217,7 @@
         flatIdx = 0; playIndex = 0;
         renderSteps();
         // 自动切到步骤 tab
-        var MODE_NAME = { lbl: '层先法', cfop: 'CFOP', '4lll': '四步法 4LLL', kociemba: 'Kociemba 两阶段' };
+        var MODE_NAME = { lbl: '层先法', cfop: 'CFOP', '4lll': '四步法 4LLL', kociemba: 'Kociemba 两阶段', roux: 'Roux 桥式' };
         showTab('steps');
         updateStatus((MODE_NAME[mode] || mode) + '：共 ' + r.totalMoves + ' 步 / ' + r.steps.length + ' 个阶段（' + dt + 'ms）— 点击播放演示');
       } catch (e) {
@@ -242,12 +242,20 @@
     'll-pll': { name: '③ 顶层归位', color: '#9a6ff0' },
     // Kociemba 两阶段
     'kc-ph1': { name: '① 阶段 1 · 归入 G1 子群', color: '#5b8def' },
-    'kc-ph2': { name: '② 阶段 2 · 半转归位', color: '#9a6ff0' }
+    'kc-ph2': { name: '② 阶段 2 · 半转归位', color: '#9a6ff0' },
+    // Roux 桥式
+    'roux-fb': { name: '① 左桥 FB', color: '#5b8def' },
+    'roux-sb': { name: '② 右桥 SB', color: '#39c46f' },
+    'roux-cmll': { name: '③ 顶层四角 CMLL', color: '#f0a24a' },
+    'roux-lse': { name: '④ 最后六棱 LSE', color: '#9a6ff0' }
   };
   // 转动记号 → 人话（点击公式符号时显示）
-  var FACE_NAME = { U: '顶层', D: '底层', R: '右面', L: '左面', F: '前面', B: '后面' };
+  var FACE_NAME = {
+    U: '顶层', D: '底层', R: '右面', L: '左面', F: '前面', B: '后面',
+    M: '中层（左-右之间，方向同左面）', E: '中层（上-下之间，方向同底面）', S: '中层（前-后之间，方向同前面）'
+  };
   var MOVE_TEXT = {};
-  ['U', 'D', 'R', 'L', 'F', 'B'].forEach(function (f) {
+  ['U', 'D', 'R', 'L', 'F', 'B', 'M', 'E', 'S'].forEach(function (f) {
     MOVE_TEXT[f] = FACE_NAME[f] + '顺时针转 90°';
     MOVE_TEXT[f + "'"] = FACE_NAME[f] + '逆时针转 90°';
     MOVE_TEXT[f + '2'] = FACE_NAME[f] + '旋转 180°（转两下）';

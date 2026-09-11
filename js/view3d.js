@@ -39,7 +39,11 @@
     R: { ax: [1, 0, 0], deg: 90 },
     L: { ax: [1, 0, 0], deg: -90 },
     F: { ax: [0, 0, 1], deg: 90 },
-    B: { ax: [0, 0, 1], deg: -90 }
+    B: { ax: [0, 0, 1], deg: -90 },
+    // 中层转动：方向与相邻面一致（M 同 L、E 同 D、S 同 F）——Roux 的 LSE 会用到
+    M: { ax: [1, 0, 0], deg: -90 },
+    E: { ax: [0, 1, 0], deg: 90 },
+    S: { ax: [0, 0, 1], deg: 90 }
   };
 
   /* ---------- 轨道旋转（trackball）：3x3 矩阵累积，无万向节锁，可 360° 全向 ---------- */
@@ -191,8 +195,9 @@
 
   function layerOf(move) {
     var p = E.parseMove(move);
-    var axis = { U: 'y', D: 'y', R: 'x', L: 'x', F: 'z', B: 'z' }[p.face];
-    var val = { U: 1, D: -1, R: 1, L: -1, F: 1, B: -1 }[p.face];
+    // 中层转动取 axis 上的 0 层
+    var axis = { U: 'y', D: 'y', R: 'x', L: 'x', F: 'z', B: 'z', M: 'x', E: 'y', S: 'z' }[p.face];
+    var val = { U: 1, D: -1, R: 1, L: -1, F: 1, B: -1, M: 0, E: 0, S: 0 }[p.face];
     return { face: p.face, times: p.times, axis: axis, val: val };
   }
 

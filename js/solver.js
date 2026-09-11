@@ -14,6 +14,8 @@
   var FACES = E.FACES;
   // Kociemba 两阶段求解器（独立文件，惰性建表；浏览器/Node 双环境可用）
   var KC = (typeof module !== 'undefined' && module.exports) ? require('./kociemba.js') : global.CubeKociemba;
+  // Roux 桥式求解器（独立文件，四阶段：双桥 → CMLL → LSE）
+  var RX = (typeof module !== 'undefined' && module.exports) ? require('./roux.js') : global.CubeRoux;
 
   /* ---------------- 基础工具 ---------------- */
 
@@ -501,6 +503,14 @@
         throw new Error('Kociemba 求解失败：结果未复原');
       }
       return { steps: res.steps, totalMoves: res.totalMoves, kociemba: { phase1: res.phase1, phase2: res.phase2, ms: res.ms } };
+    }
+
+    // Roux 同样走完全独立的分步管线（双桥 → CMLL → LSE），
+    // 不进入下面的 LBL/CFOP/4LLL 流程。
+    if (mode === 'roux') {
+      if (!RX) throw new Error('Roux 求解器未加载（缺少 roux.js）');
+      var rr = RX.solve(state, options);
+      return { steps: rr.steps, totalMoves: rr.totalMoves, roux: { ms: rr.ms } };
     }
 
     var cur = state.slice();
